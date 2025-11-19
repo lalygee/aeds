@@ -143,3 +143,105 @@ void numero(Lista *l, int valor){
         }
     }
 }
+
+
+//19/11
+
+#include <stdio.h>
+#include <limits.h>
+
+#define SIZE 100
+
+typedef struct _Node{
+    int key;
+    int value;
+    struct _Node *proximo;
+}Node;
+
+Node *criarNo(int valor, int key){
+
+    Node *n = malloc(sizeof(Node));
+
+    n->key = key;
+    n->value = valor;
+    n->proximo = NULL;
+
+    return n;
+}
+
+int hash(int key){
+    return (key%SIZE);
+}
+
+void inserir(Node *table[], int valor, int key){
+    
+    int hashed = hash(key);
+
+    Node *n = criarNo(valor, key);
+    n->proximo = table[hashed];
+    table[hashed] = n;
+
+    return;
+}
+
+int remover(Node *table[], int valor, int key){
+
+    int hashed = hash(key);
+
+    if(table[hashed] == NULL){
+        return INT_MIN;
+    }
+    
+    Node *i = table[hashed]->proximo;
+    Node *anterior = table[hashed];
+    
+    if(anterior->key == key){
+        int resultado = anterior->key;
+        table[hashed] = anterior->proximo;
+        free(anterior);
+        return resultado;
+    }
+
+    while(i!=NULL){
+        if(i->key == key){
+            int resultado = i->key;
+            anterior->proximo = i->proximo;
+            free(i);
+            return resultado;
+        }
+    }
+    return INT_MIN;
+}
+
+//endereçamento aberto
+
+void inserirBurro(Node *table[], int valor, int key){
+
+    int hashed = hash(key);
+
+    Node *n = criarNo(valor, key);
+
+    if(table[hashed] == NULL){
+        table[hashed] = n;
+        return;
+    }
+
+    for (int i = hashed+1 % SIZE; i < SIZE; i++ % SIZE) {
+
+        if (i == hashed) {
+            break;
+        }
+
+        if(table[i] == NULL) {
+            table[hashed] = n;
+            return;
+        }
+    }
+
+    return;
+}
+
+int main(){
+
+    Node *table[SIZE];
+}
