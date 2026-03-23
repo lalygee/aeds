@@ -1,0 +1,146 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+//entrada linha | saida coluna
+
+//tbm para não orientado
+int grauEntrada(int node1, int **matrix, int arestas){
+    
+    int grau = 0;
+
+    for(int j = 0; j < arestas; j++){
+        if(matrix[node1-1][j] != 0){
+            grau++;
+        }
+    }
+
+    return grau;
+
+}
+
+int grauSaida(int node1, int **matrix, int arestas){
+
+    int grauSaida;
+
+    for(int i = 0; i < arestas; i++){
+        if(matrix[i][node1-1] != 0){
+            grauSaida++;
+        }
+    }
+
+    return grauSaida;
+    
+}
+
+int maximo(int **matrix, int arestas){
+
+    int maximo, entrada, saida, maior = 0;
+    
+    for(int i = 0; i < arestas; i++){
+        entrada = grauEntrada(i, matrix, arestas);
+        saida = grauSaida(i, matrix, arestas);
+
+        if(entrada>saida){
+            if(entrada > maior){
+                maior = entrada;
+            }
+        }
+
+        if(saida>entrada){
+            if(saida > maior){
+                maior = saida;
+            }
+        }
+    }
+
+    return maior;
+}
+
+int minimo(int **matrix, int arestas){
+
+    int maximo, entrada, saida, menor;
+    
+    for(int i = 0; i < arestas; i++){
+        entrada = grauEntrada(i, matrix, arestas);
+        saida = grauSaida(i, matrix, arestas);
+
+        if(saida>entrada){
+            if(entrada<menor){
+                menor = entrada;
+            }
+        }
+
+        if(entrada>saida){
+            if(saida<menor){
+                menor = saida;
+            }
+        }
+    }
+
+    return menor;
+}
+
+
+int main(){
+
+int nodes, arestas, categoria;
+
+scanf("%d", &nodes);
+scanf("%d", &arestas);
+scanf("%d", &categoria);
+
+int **matrix;
+
+matrix = malloc(nodes * sizeof(int*));
+
+for(int i = 0; i < nodes; i++){
+    matrix[i] = malloc(nodes * sizeof(int));
+}
+
+for(int i = 0; i < nodes; i++){
+    for(int j = 0; j < nodes; j++){
+        matrix[i][j] = 0;
+    }
+}
+
+int node1, node2;
+
+for(int i = 0; i < arestas; i++){
+    scanf("%d %d", &node1, &node2);
+
+    if (categoria == 0){
+        matrix[node1-1][node2-1] = 1;
+        matrix[node2-1][node1-1] = 1;
+    }
+
+    if (categoria == 1){
+        matrix[node1-1][node2-1] = 1;
+    }
+    
+    int peso1, peso2;
+
+    if(categoria == 2){
+        scanf("%d %d", &peso1, &peso2);
+
+        matrix[node1-1][node2-1] = peso1;
+        matrix[node2-1][node1-1] = peso2;
+    }
+
+    if(categoria == 3){
+        scanf("%d", &peso1);
+        matrix[node1-1][node2-1] = peso1;
+    }
+}
+
+
+
+/*for(int i = 0; i < nodes; i++){
+    for(int j = 0; j < nodes; j++){
+        printf("%d ", matrix[i][j]);
+    }
+    printf("\n");
+}*/
+
+return 0;
+
+}
