@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 //entrada linha | saida coluna
 
 //tbm para não orientado
-int grauEntrada(int node1, int **matrix, int arestas){
+int grauEntrada(int node1, int **matrix, int vertices){
     
     int grau = 0;
 
-    for(int j = 0; j < arestas; j++){
+    for(int j = 0; j < vertices; j++){
         if(matrix[node1-1][j] != 0){
             grau++;
         }
@@ -18,11 +19,11 @@ int grauEntrada(int node1, int **matrix, int arestas){
 
 }
 
-int grauSaida(int node1, int **matrix, int arestas){
+int grauSaida(int node1, int **matrix, int vertices){
 
     int grauSaida;
 
-    for(int i = 0; i < arestas; i++){
+    for(int i = 0; i < vertices; i++){
         if(matrix[i][node1-1] != 0){
             grauSaida++;
         }
@@ -32,37 +33,33 @@ int grauSaida(int node1, int **matrix, int arestas){
     
 }
 
-int maximo(int **matrix, int arestas){
+int maximo(int **matrix, int vertices){
 
     int maximo, entrada, saida, maior = 0;
     
-    for(int i = 0; i < arestas; i++){
-        entrada = grauEntrada(i, matrix, arestas);
-        saida = grauSaida(i, matrix, arestas);
+    for(int i = 0; i < vertices; i++){
+        entrada = grauEntrada(i+1, matrix, vertices);
+        saida = grauSaida(i+1, matrix, vertices);
 
-        if(entrada>saida){
-            if(entrada > maior){
+        if(entrada>saida && entrada > maior){
                 maior = entrada;
-            }
         }
 
-        if(saida>entrada){
-            if(saida > maior){
+        else if(saida>entrada && saida > maior){
                 maior = saida;
-            }
         }
     }
 
     return maior;
 }
 
-int minimo(int **matrix, int arestas){
+int minimo(int **matrix, int vertices){
 
-    int maximo, entrada, saida, menor;
+    int maximo, entrada, saida, menor = 9999;
     
-    for(int i = 0; i < arestas; i++){
-        entrada = grauEntrada(i, matrix, arestas);
-        saida = grauSaida(i, matrix, arestas);
+    for(int i = 0; i < vertices; i++){
+        entrada = grauEntrada(i+1, matrix, vertices);
+        saida = grauSaida(i+1, matrix, vertices);
 
         if(saida>entrada){
             if(entrada<menor){
@@ -80,6 +77,54 @@ int minimo(int **matrix, int arestas){
     return menor;
 }
 
+bool adjacencia(int node1, int node2, int **matrix){
+    
+    return matrix[node1][node2] != 0 || matrix[node2][node1] != 0;
+
+}
+
+int regular(int **matrix, int vertices, int categoria){
+
+    int grau = grauEntrada(1, matrix, vertices);
+    
+    //n orientado
+    if(categoria == 0 || categoria == 2){
+
+        for(int i = 1;i < vertices; i++){
+            if(grau != grauEntrada(i+1, matrix, vertices)){
+                return 0;
+            }
+        }
+
+        return 1;
+    }
+
+    //orientado
+
+    int grauS = grauSaida(1, matrix, vertices);
+
+    for(int i = 1; i < vertices; i++){
+        if(grau != grauEntrada(i+1, matrix, vertices) || grauS != grauSaida(i+1, matrix, vertices)){
+            return 0;
+        }
+    }
+
+    return 1;
+
+}
+
+// maximo = n-1 e regula
+int completo(int **matrix, int vertices, int categoria, int nodes){
+
+    if(regular(matrix, vertices, categoria) == 0){
+        return 0;
+    }
+
+    int grau = maximo(matrix, vertices);
+
+    return grau == nodes - 1;
+   
+}
 
 int main(){
 
@@ -132,14 +177,15 @@ for(int i = 0; i < arestas; i++){
     }
 }
 
-
-
 /*for(int i = 0; i < nodes; i++){
     for(int j = 0; j < nodes; j++){
         printf("%d ", matrix[i][j]);
     }
     printf("\n");
 }*/
+
+printf("%d ", maximo(matrix, arestas));
+printf("%d ", minimo(matrix, arestas));
 
 return 0;
 
