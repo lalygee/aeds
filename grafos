@@ -21,7 +21,7 @@ int grauEntrada(int node1, int **matrix, int vertices){
 
 int grauSaida(int node1, int **matrix, int vertices){
 
-    int grauSaida;
+    int grauSaida = 0;
 
     for(int i = 0; i < vertices; i++){
         if(matrix[i][node1-1] != 0){
@@ -61,16 +61,12 @@ int minimo(int **matrix, int vertices){
         entrada = grauEntrada(i+1, matrix, vertices);
         saida = grauSaida(i+1, matrix, vertices);
 
-        if(saida>entrada){
-            if(entrada<menor){
+        if(saida>entrada && entrada < menor){
                 menor = entrada;
-            }
         }
 
-        if(entrada>saida){
-            if(saida<menor){
+        if(entrada>saida && saida < menor){
                 menor = saida;
-            }
         }
     }
 
@@ -113,8 +109,7 @@ int regular(int **matrix, int vertices, int categoria){
 
 }
 
-// maximo = n-1 e regula
-int completo(int **matrix, int vertices, int categoria, int nodes){
+int completo(int **matrix, int vertices, int categoria){
 
     if(regular(matrix, vertices, categoria) == 0){
         return 0;
@@ -122,28 +117,28 @@ int completo(int **matrix, int vertices, int categoria, int nodes){
 
     int grau = maximo(matrix, vertices);
 
-    return grau == nodes - 1;
+    return grau == vertices - 1;
    
 }
 
 int main(){
 
-int nodes, arestas, categoria;
+int vertices, arestas, categoria;
 
-scanf("%d", &nodes);
+scanf("%d", &vertices);
 scanf("%d", &arestas);
 scanf("%d", &categoria);
 
 int **matrix;
 
-matrix = malloc(nodes * sizeof(int*));
+matrix = malloc(vertices * sizeof(int*));
 
-for(int i = 0; i < nodes; i++){
-    matrix[i] = malloc(nodes * sizeof(int));
+for(int i = 0; i < vertices; i++){
+    matrix[i] = malloc(vertices * sizeof(int));
 }
 
-for(int i = 0; i < nodes; i++){
-    for(int j = 0; j < nodes; j++){
+for(int i = 0; i < vertices; i++){
+    for(int j = 0; j < vertices; j++){
         matrix[i][j] = 0;
     }
 }
@@ -184,8 +179,7 @@ for(int i = 0; i < arestas; i++){
     printf("\n");
 }*/
 
-printf("%d ", maximo(matrix, arestas));
-printf("%d ", minimo(matrix, arestas));
+printf("%d ", completo(matrix, vertices, categoria));
 
 return 0;
 
