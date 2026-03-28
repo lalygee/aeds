@@ -2,16 +2,71 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-//entrada linha | saida coluna
+typedef struct Node{
+    int vertice;
+    int peso;
+    struct Node *next;
+}Node;
 
-//tbm para não orientado
-int grauEntrada(int node1, int **matrix, int vertices){
-    
+typedef struct Grafo{
+    int numVertices;
+    Node **listaAdj;
+}Grafo;
+
+Node* createNode(int vertice, int peso){
+
+    Node *n = malloc(sizeof(Node));
+    n->vertice = vertice;
+    n->peso = peso;
+    n->next = NULL;
+
+    return n;
+}
+
+Grafo* createGraph(int vertices){
+
+    Grafo *graph = malloc(sizeof(Grafo));
+    graph->numVertices = vertices;
+
+    graph->listaAdj = malloc(vertices * sizeof(Node*));
+
+    for(int i = 0; i < vertices; i++){
+        graph->listaAdj[i] = NULL;
+    }
+
+    return graph;
+}
+
+void addArestas(Grafo *g, int origem, int dest, int peso, int orientado){
+
+    Node *n = createNode(dest, peso);
+    // n aponta para o inicio da lista
+    n->next = g->listaAdj[origem-1];
+    g->listaAdj[origem-1] = n;
+
+    // só executa se for não orientado
+    if(!orientado){
+        n = createNode(origem,peso);
+        n->next = g->listaAdj[dest-1];
+        g->listaAdj[dest-1] = n;
+    }
+}
+
+//grau de entrada: n de vezes que o vert aparece em outras listas
+//grau de saida: num de nós na lista
+
+int grauEntrada(Grafo *g, int vertice){
+
     int grau = 0;
 
-    for(int j = 0; j < vertices; j++){
-        if(matrix[node1-1][j] != 0){
-            grau++;
+    for(int i = 0; i < g->numVertices; i++){
+        Node *temp = g->listaAdj[i];
+        
+        while(temp != NULL){
+            if(temp->vertice == vertice){
+                grau++;
+            }
+            temp = temp->next;
         }
     }
 
@@ -19,168 +74,161 @@ int grauEntrada(int node1, int **matrix, int vertices){
 
 }
 
-int grauSaida(int node1, int **matrix, int vertices){
+int grauSaida(Grafo *g, int vertice){
+    
+    int grau = 0;
+    Node *temp = g->listaAdj[vertice-1];
 
-    int grauSaida = 0;
-
-    for(int i = 0; i < vertices; i++){
-        if(matrix[i][node1-1] != 0){
-            grauSaida++;
-        }
+    while(temp != NULL){
+        grau++;
+        temp = temp->next;
     }
 
-    return grauSaida;
-    
+    return grau;
+
 }
 
-int maximo(int **matrix, int vertices){
+int maximo(Grafo *g){
 
-    int maximo, entrada, saida, maior = 0;
-    
-    for(int i = 0; i < vertices; i++){
-        entrada = grauEntrada(i+1, matrix, vertices);
-        saida = grauSaida(i+1, matrix, vertices);
+    int maior = 0;
 
-        if(entrada>saida && entrada > maior){
-                maior = entrada;
+    for(int i = 0; i < g->numVertices; i++){
+        int entrada = grauEntrada(g, i+1);
+        int saida = grauSaida(g, i+1);
+
+        if(entrada > maior){
+            maior = entrada;
         }
-
-        else if(saida>entrada && saida > maior){
-                maior = saida;
+        if(saida > maior){
+            maior = saida;
         }
     }
 
     return maior;
+
 }
 
-int minimo(int **matrix, int vertices){
+int minimo(Grafo *g){
 
-    int maximo, entrada, saida, menor = 9999;
-    
-    for(int i = 0; i < vertices; i++){
-        entrada = grauEntrada(i+1, matrix, vertices);
-        saida = grauSaida(i+1, matrix, vertices);
+    int menor = g->numVertices;
 
-        if(saida>entrada && entrada < menor){
+        for(int i = 0; i < g->numVertices; i++){
+            int entrada = grauEntrada(g, i+1);
+            int saida = grauSaida(g, i+1);
+
+            if(entrada < menor){
                 menor = entrada;
-        }
-
-        if(entrada>saida && saida < menor){
+            }
+            if(saida < menor){
                 menor = saida;
-        }
-    }
-
-    return menor;
-}
-
-bool adjacencia(int node1, int node2, int **matrix){
-    
-    return matrix[node1][node2] != 0 || matrix[node2][node1] != 0;
-
-}
-
-int regular(int **matrix, int vertices, int categoria){
-
-    int grau = grauEntrada(1, matrix, vertices);
-    
-    //n orientado
-    if(categoria == 0 || categoria == 2){
-
-        for(int i = 1;i < vertices; i++){
-            if(grau != grauEntrada(i+1, matrix, vertices)){
-                return 0;
             }
         }
 
-        return 1;
+        return menor;
+
+}
+
+int adjacencia(Grafo *g, int n1, int n2){
+
+    Node *temp = g->listaAdj[n1-1];
+
+    while(temp != NULL){
+        if(temp->vertice == n2){
+            return 1;
+        }
+        temp = temp->next;
     }
 
-    //orientado
+    return 0;
+}
 
-    int grauS = grauSaida(1, matrix, vertices);
+int regular(Grafo *g, int categoria){
 
-    for(int i = 1; i < vertices; i++){
-        if(grau != grauEntrada(i+1, matrix, vertices) || grauS != grauSaida(i+1, matrix, vertices)){
+    int grauBase = grauSaida(g, 1);
+
+    for(int i = 2; i <= g->numVertices; i++){
+        if(grauSaida(g, i) != grauBase){
             return 0;
         }
     }
 
-    return 1;
+    if(categoria == 1 || categoria == 3){
 
+        int entradaBase = grauEntrada(g, 1);
+
+        for(int i = 2; i < g->numVertices; i++){
+            if(grauEntrada(g, i) != entradaBase){
+                return 0;
+            }
+        }
+    }
+
+    return 1;
 }
 
-int completo(int **matrix, int vertices, int categoria){
+int completo(Grafo *g, int categoria){
 
-    if(regular(matrix, vertices, categoria) == 0){
+    if(regular(g, categoria) == 0){
         return 0;
     }
 
-    int grau = maximo(matrix, vertices);
+    int grau = maximo(g);
 
-    return grau == vertices - 1;
-   
+    if(grau == g->numVertices - 1){
+        return 1;
+    }
+
+    return 0;
 }
+
 
 int main(){
 
-int vertices, arestas, categoria;
-
-scanf("%d", &vertices);
-scanf("%d", &arestas);
-scanf("%d", &categoria);
-
-int **matrix;
-
-matrix = malloc(vertices * sizeof(int*));
-
-for(int i = 0; i < vertices; i++){
-    matrix[i] = malloc(vertices * sizeof(int));
-}
-
-for(int i = 0; i < vertices; i++){
-    for(int j = 0; j < vertices; j++){
-        matrix[i][j] = 0;
-    }
-}
-
-int node1, node2;
-
-for(int i = 0; i < arestas; i++){
-    scanf("%d %d", &node1, &node2);
-
-    if (categoria == 0){
-        matrix[node1-1][node2-1] = 1;
-        matrix[node2-1][node1-1] = 1;
-    }
-
-    if (categoria == 1){
-        matrix[node1-1][node2-1] = 1;
-    }
+    int vertices, arestas, categoria;
     
-    int peso1, peso2;
+    scanf("%d", &vertices);
+    scanf("%d", &arestas);
+    scanf("%d", &categoria);
 
-    if(categoria == 2){
-        scanf("%d %d", &peso1, &peso2);
+    Grafo *grafo = createGraph(vertices);
 
-        matrix[node1-1][node2-1] = peso1;
-        matrix[node2-1][node1-1] = peso2;
+    int no1, no2, peso = 0;
+
+    for(int i = 0; i < arestas; i++){
+        
+        // verifica se a categoria tem peso ou n (para não ler inf desnecessária)
+        if(categoria >= 2){
+            scanf("%d %d %d", &no1, &no2, &peso);
+        }
+        else{
+            scanf("%d %d", &no1, &no2);
+        }
+
+        //verifica se é orientado
+        int orientado = (categoria == 1 || categoria == 3);
+
+        addArestas(grafo, no1, no2, peso, orientado);
     }
 
-    if(categoria == 3){
-        scanf("%d", &peso1);
-        matrix[node1-1][node2-1] = peso1;
+    printf("Lista\n");
+    for(int i = 0; i < vertices; i++){
+
+        Node *temp = grafo->listaAdj[i];
+        printf("[%d]", i+1);
+
+        while(temp != 0){
+            printf(" %d,p(%d) | ", temp->vertice, temp->peso);
+            temp = temp->next;
+        }
+
+        printf("\n");
     }
-}
 
-/*for(int i = 0; i < nodes; i++){
-    for(int j = 0; j < nodes; j++){
-        printf("%d ", matrix[i][j]);
-    }
-    printf("\n");
-}*/
+    printf("grau máximo: %d\n", maximo(grafo));
+    printf("grau mínimo: %d\n", minimo(grafo));
+    printf("é adj?: %d \n", adjacencia(grafo, 4, 2));
+    printf("é regular?: %d\n", regular(grafo, categoria));
+    printf("é completo?: %d\n", completo(grafo, categoria));
 
-printf("%d ", completo(matrix, vertices, categoria));
-
-return 0;
-
+    return 0;
 }
