@@ -181,6 +181,113 @@ int completo(Grafo *g, int categoria){
     return 0;
 }
 
+int temLoop(Grafo *g, int vertice){
+
+    Node *temp = g->listaAdj[vertice-1];
+
+    while(temp != NULL){
+
+        if(vertice == temp->vertice){
+            return 1;
+        }
+
+        temp = temp->next;
+    }
+
+    return 0;
+}
+
+int arestaParalela(Grafo *g, int node1, int node2, int orientado){
+
+    Node *temp = g->listaAdj[node1-1];
+    int count = 0; 
+
+    while(temp){
+
+        if(temp->vertice == node2){
+            count++;
+        }
+
+        temp = temp->next;
+    }
+    
+    if(!orientado){
+        if(count != 0){
+            return 1;
+        }
+    }
+
+    Node *temp2 = g->listaAdj[node2-1];
+    int count2 = 0;
+
+    while(temp2){
+
+        if(temp2->vertice == node1){
+                count2++;
+        }
+
+        temp2 = temp2->next;
+    }
+
+    if(count != 0 && count2 != 0){
+        return 1;
+    }
+
+    return 0;
+    
+}
+
+// inserir aresta
+
+void removerAresta(Grafo *g, int node1, int node2, int orientado){
+
+    Node *temp = g->listaAdj[node1];
+    Node *ant = g->listaAdj[node1-1];
+
+    if(ant->vertice == node2){
+        g->listaAdj[node1-1] = NULL;
+        free(ant);
+    }
+
+    while(temp){
+        if(temp->vertice == node2){
+            ant->next = temp->next;
+            free(temp);
+        }
+    }
+
+    if(!orientado){
+
+        Node *temp2 = g->listaAdj[node2];
+        Node *ant2 = g->listaAdj[node2-1];
+
+        if(ant->vertice == node1){
+            g->listaAdj[node2-1] = NULL;
+            free(ant);
+        }
+
+    while(temp){
+        if(temp->vertice == node1){
+            ant->next = temp->next;
+            free(temp);
+        }
+    }
+
+    }
+        
+    return;
+}
+
+void removerNo(Grafo *g, int no, int categoria){
+
+
+
+}
+
+// verificar aresta paralela
+
+// retronar vizinhaça de nó
+// retornar fecho transitivo de nó
 
 int main(){
 
@@ -194,6 +301,9 @@ int main(){
 
     int no1, no2, peso = 0;
 
+    //verifica se é orientado
+    int orientado = (categoria == 1 || categoria == 3);
+    
     for(int i = 0; i < arestas; i++){
         
         // verifica se a categoria tem peso ou n (para não ler inf desnecessária)
@@ -204,8 +314,6 @@ int main(){
             scanf("%d %d", &no1, &no2);
         }
 
-        //verifica se é orientado
-        int orientado = (categoria == 1 || categoria == 3);
 
         addArestas(grafo, no1, no2, peso, orientado);
     }
@@ -226,9 +334,12 @@ int main(){
 
     printf("grau máximo: %d\n", maximo(grafo));
     printf("grau mínimo: %d\n", minimo(grafo));
-    printf("é adj?: %d \n", adjacencia(grafo, 4, 2));
+    printf("é adj?: %d \n", adjacencia(grafo, 1, 2));
     printf("é regular?: %d\n", regular(grafo, categoria));
     printf("é completo?: %d\n", completo(grafo, categoria));
+    printf("tem loop?: %d\n", temLoop(grafo, 1));
+    printf("e paralelo?: %d\n", arestaParalela(grafo, 
+    1, 2, orientado));
 
     return 0;
 }
