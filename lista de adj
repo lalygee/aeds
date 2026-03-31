@@ -228,7 +228,7 @@ int arestaParalela(Grafo *g, int node1, int node2, int orientado){
             
             temp2 = temp2->next;
         }
-        
+
         if(coun2 > 1){
             return 1;
         }
@@ -243,50 +243,54 @@ int arestaParalela(Grafo *g, int node1, int node2, int orientado){
 
 void removerAresta(Grafo *g, int node1, int node2, int orientado){
 
-    Node *temp = g->listaAdj[node1];
-    Node *ant = g->listaAdj[node1-1];
+    // para n reescrever a msm função duas vezes para o caso de n orientado
+    void removerDaLista(Grafo *g, int n1, int n2){
+        Node *temp = g->listaAdj[node1-1];
+        Node *ant = null;
 
-    if(ant->vertice == node2){
-        g->listaAdj[node1-1] = NULL;
-        free(ant);
-    }
+        while(temp){
+            if(temp->vertice == node2){
+                if(ant == null){
+                    g->listaAdj[node1-1] = temp->next;
+                }
+                else{
+                    ant->next = temp->next;
+                }
+                free(temp);
+                return;
+            }
 
-    while(temp){
-        if(temp->vertice == node2){
-            ant->next = temp->next;
-            free(temp);
+            ant = temp;
+            temp = temp->next;
         }
     }
+
+    removerDaLista(g, node1, node2);
 
     if(!orientado){
+        removerDaLista(g, node2, node1);
+    }
+}
 
-        Node *temp2 = g->listaAdj[node2];
-        Node *ant2 = g->listaAdj[node2-1];
+void removerVertice(Grafo *g, int vertice, int categoria){
 
-        if(ant->vertice == node1){
-            g->listaAdj[node2-1] = NULL;
-            free(ant);
-        }
+    for(int i = 0; i < g->numVertices; i++){
+        removerAresta(g, i+1, vertice, categoria);
+    }
+
+    Node *temp = g->listaAdj[vertice-1];
 
     while(temp){
-        if(temp->vertice == node1){
-            ant->next = temp->next;
-            free(temp);
-        }
+        Node *aux = temp;
+        temp = temp->next;
+        free(aux);
     }
 
-    }
-        
-    return;
-}
-
-void removerNo(Grafo *g, int no, int categoria){
-
+    g->listaAdj[vertice-1] = NULL;
 
 
 }
 
-// verificar aresta paralela
 
 // retronar vizinhaça de nó
 // retornar fecho transitivo de nó
@@ -326,7 +330,7 @@ int main(){
         Node *temp = grafo->listaAdj[i];
         printf("[%d]", i+1);
 
-        while(temp != 0){
+        while(temp){
             printf(" %d,p(%d) | ", temp->vertice, temp->peso);
             temp = temp->next;
         }
@@ -342,6 +346,6 @@ int main(){
     printf("tem loop?: %d\n", temLoop(grafo, 1));
     printf("e paralelo?: %d\n", arestaParalela(grafo, 
     1, 2, orientado));
-
+    
     return 0;
 }
