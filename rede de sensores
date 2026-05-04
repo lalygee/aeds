@@ -1,0 +1,547 @@
+// Dupla Laryssa Germana Andrade e Pedro Henrique Santoro Barreto Frinhane
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <limits.h>
+
+typedef struct sensor{
+    int sensor;
+    int peso;
+    struct sensor* proximo;
+}Sensor;
+
+typedef struct rede{
+    int tamanho;                         //Quantidade de sensores inseridos
+    int vertices;                        //Quantidade de sensores ativos(que nÃ£o foram deletados)
+    Sensor** grafo;
+}Rede;
+
+typedef struct caminhos{
+    int vertices;
+    bool* aberto;
+    int* antecessores;
+    int* somapesos;
+}Caminhos;
+
+Sensor* criaSensor(int vertice, int peso){
+    Sensor* novo = malloc(sizeof(Sensor));
+    novo->sensor = vertice;
+    novo->peso = peso;
+    novo->proximo = NULL;
+    return novo;
+}
+
+Rede* criaRede(int vertices){
+    Rede* rede = malloc(sizeof(Rede));
+    rede->grafo = (Sensor**) malloc(sizeof(Sensor*) * vertices);
+    rede->tamanho = vertices;
+    rede->vertices = vertices;
+
+    for(int i = 0; i<vertices; i++){
+        rede->grafo[i] = NULL;
+    }
+    return rede;
+}
+
+void insere(Rede* rede, int no1, int no2, int peso){
+    Sensor* sensor1 = criaSensor(no1, peso);
+    sensor1->proximo = rede->grafo[no2];
+    rede->grafo[no2] = sensor1;
+
+    Sensor* sensor2 = criaSensor(no2, peso);
+    sensor2->proximo = rede->grafo[no1];
+    rede->grafo[no1] = sensor2;
+    return;
+}
+
+void carregaRede(Rede* rede, int arestas){            //scanf e printf dos sensores e enlaces
+    for(int i = 0; i<arestas; i++){
+        int no1, no2, peso;
+        scanf("%d", &no1);
+        scanf("%d", &no2);
+        scanf("%d", &peso);
+        insere(rede, no1, no2, peso);
+    }
+    printf("Topologia carregada com sucesso.\n");
+    printf("Sensores: %d\n", rede->vertices);
+    printf("Enlaces: %d\n", arestas);
+}
+
+void imprimeLista(Rede* rede){                       //printf da topologia da rede
+    for(int i = 0; i < rede->tamanho; i++){
+        Sensor* aux = rede->grafo[i];
+        printf("Vertice %d: ", i);
+        while(aux!=NULL){
+            printf("-> %d (Peso: %d) ", aux->sensor, aux->peso);
+            aux = aux->proximo;
+        }
+        printf("\n");
+    }
+}
+
+Caminhos* criaCaminhos(int sensor, int vertices){    //função para usar no dijkstra
+    Caminhos* novo = (Caminhos*) malloc(sizeof(Caminhos));
+    novo->vertices = vertices;
+    novo->aberto = (bool*) malloc(sizeof(bool) * vertices);
+    novo->antecessores = (int*) malloc(sizeof(int)* vertices);
+    novo->somapesos = (int*) malloc(sizeof(int)* vertices);
+
+    for(int i = 0; i<vertices; i++){
+        novo->aberto[i] = true;
+        novo->antecessores[i] = -1;
+        novo->somapesos[i] = INT_MAX;
+    }
+
+
+    novo->somapesos[sensor] = 0;                 //distância da origem para ela mesma é sempre 0 
+
+    return novo;
+}
+
+int escolheSensor(Caminhos* caminho){                //função para usar no dijkstra (procura sensor mais perto da origem)
+    int menor;
+    int i;
+
+    for(i = 0; i<caminho->vertices; i++){       //procura primeiro sensor aberto
+        if(caminho->aberto[i]){
+            menor = i;
+            break;
+        }
+    }
+
+    if(i == caminho->vertices){                 //loop não encontrou sensor aberto
+        return -1;
+    }
+
+    for(int j = 0; j<caminho->vertices; j++){  //procura entre outros sensores o sensor com menor soma de pesos
+        if(caminho->aberto[j] && caminho->somapesos[j] < caminho->somapesos[menor]){
+            menor = j;
+        }
+    }
+
+    return menor;                              //sensor com menor custo
+
+}
+
+void relaxamento(Caminhos* caminho, int origem, Sensor* destino){   //função para usar no dijkstra (acha o caminho mínimo)
+    int soma = caminho->somapesos[origem] + destino->peso;          
+    if(soma < caminho->somapesos[destino->sensor]){                 
+        caminho->antecessores[destino->sensor] = origem;
+        caminho->somapesos[destino->sensor] = soma;
+    }
+}
+
+int trajeto(Caminhos*caminho, int sensorOrigem, int sensor, int saltos){ //função para usar no dijkstra (printa o caminho)
+    if(sensor != sensorOrigem){
+        saltos = trajeto(caminho, sensorOrigem, caminho->antecessores[sensor], saltos+1);
+        printf("-> %d ", sensor);
+        return saltos;
+    }
+    return saltos;
+}
+
+void liberaCaminho(Caminhos* caminho){               //função para usar no dijkstra (liberar memória)
+    free(caminho->aberto);
+    free(caminho->antecessores);
+    free(caminho->somapesos);
+    free(caminho);
+    return;
+}
+
+void dijkstra(Rede* rede, int sensorOrigem, int sensorDestino){
+    int atual;
+    Sensor* aux;
+
+    Caminhos* caminho = criaCaminhos(sensorOrigem, rede->tamanho); //inicializa caminho
+
+    while(caminho->aberto[sensorDestino]){
+        atual = escolheSensor(caminho);                            //escolhe sensor aberto com menor distância
+
+        if(atual == -1){                                           //não há caminho possível
+            break;
+        }
+
+        caminho->aberto[atual] = false;                            //marca sensor para não visita-lo novamente
+
+        if(atual == sensorDestino){                                //se o sensor atual já é o destino para a busca
+            break;
+        }
+
+        aux = rede->grafo[atual];                                 //explora vizinhos do sensor atual
+
+        while(aux){                                               //tenta procurar o caminho mais curto
+            relaxamento(caminho, atual, aux);
+            aux = aux->proximo;
+        }
+    }
+
+    printf("Caminho encontrado:\n");
+    printf("%d ", sensorOrigem);
+    int saltos = 0;
+    saltos = trajeto(caminho, sensorOrigem, sensorDestino, saltos);
+    printf("\nSaltos: %d\n", saltos);
+    liberaCaminho(caminho);
+    return;
+}
+
+int calculaGrau(Rede* rede, int sensor){             //calcula garu do sensor
+    Sensor* aux = rede->grafo[sensor];
+    int grau = 0;
+    while(aux!=NULL){
+        grau ++;
+        aux = aux->proximo;
+    }
+    return grau;
+}
+
+int adjacente(Rede* rede, int sensor1, int sensor2){  //verifica se os sensores são vizinhos
+    Sensor* aux = rede->grafo[sensor1];
+    while(aux!=NULL){
+        if(aux->sensor == sensor2){
+            return 1;
+        }
+        aux = aux->proximo;
+    }
+    return 0;
+}
+
+void coeficienteAgrupamento(Rede* rede, int sensor){   //mede nive de conexão entre vizinhos
+    
+    int vizinhos[rede->vertices];                      //vetor auxiliar para guardar os vizinhos do sensor
+    int quantidadeVizinhos = 0;
+    Sensor* aux = rede->grafo[sensor];
+
+    while(aux!=NULL){                                 //preenche vetor com os vizinhos do sensor
+        vizinhos[quantidadeVizinhos] = aux->sensor;
+        quantidadeVizinhos++;
+        aux = aux->proximo;
+    }
+
+    int arestaTotal = (quantidadeVizinhos*(quantidadeVizinhos-1))/2; //calcula número máximo de conexões entre vizinhos
+    int arestas = 0;
+
+    for(int i = 0; i<quantidadeVizinhos; i++){                      //verifica para cada par quais vizinhos estão conectados entre si
+        for(int j = i+1; j<quantidadeVizinhos; j++){
+            if(adjacente(rede, vizinhos[i], vizinhos[j])){
+                printf("%d e %d sao adjacentes\n", vizinhos[i], vizinhos[j]);
+                arestas ++;
+            }
+            else{
+                printf("%d e %d nao sao adjacentes\n", vizinhos[i], vizinhos[j]);
+            }
+        }
+    }
+
+    float coeficiente = ((float)arestas/arestaTotal); 
+
+    
+    printf("CC(%d): %.2f\n", sensor, coeficiente);
+    
+}
+
+float grauMedio(Rede* rede){                    //calcula grau médio da rede
+    int grau = 0;
+
+    for(int i = 0; i < rede->tamanho; i++){
+        grau += calculaGrau(rede, i);
+    }
+    
+    return ((float)grau/rede->vertices);
+}
+
+void liberaMatrizes(int ** matriz, int tamanho){
+    for(int i = 0; i<tamanho; i++){
+        free(matriz[i]);
+    }
+    free(matriz);
+}
+
+int** matrizResidual(Rede* rede) {             //transforma a lista de adj em uma matriz
+
+    int** matriz = (int**) malloc(rede->tamanho * sizeof(int*));
+
+    for (int i = 0; i < rede->tamanho; i++) {
+        matriz[i] = (int*) calloc(rede->tamanho, sizeof(int)); 
+    }
+
+    for (int i = 0; i < rede->tamanho; i++) {
+        Sensor* aux = rede->grafo[i];
+
+        while (aux != NULL) {
+            int j = aux->sensor; 
+            matriz[i][j] = 1;               //define capacidade da aresta como 1
+            aux = aux->proximo;
+        }
+    }
+    return matriz;
+}
+
+bool BFS(int **matrizResidual, int sensorOrigem, int sensorDestino, int vertices, int* antecessores){
+
+    bool* visitados = (bool*) calloc(vertices,sizeof(bool)); //vetor para marcar quem já foi visitado
+
+    int* fila = (int*) malloc(sizeof(int)*vertices);        //fla para gerenciar ordem de visita
+    int inicioFila = 0;
+    int fimFila = 0;
+
+    fila[fimFila++] = sensorOrigem;                        //inicia a fila com a origem
+    visitados[sensorOrigem] = true;
+    antecessores[sensorOrigem] = -1;
+    
+
+    while (inicioFila < fimFila) {
+
+        int atual = fila[inicioFila++];
+
+        for (int i = 0; i < vertices; i++) {              //visita outros sensores
+
+            if (!visitados[i] && matrizResidual[atual][i] > 0) {  //se o sensor i não foi visitado e há capacidade de fluxo 
+                antecessores[i] = atual;  //salva o atual para reconstruir o caminho
+
+                if (i == sensorDestino) {  //se i == destino o caminho foi encontrado
+                    free(visitados);
+                    free(fila);
+                    return true;
+                }
+
+                visitados[i] = true;  //se i não é o destino marca como visitado e coloca na fila para verificar seus vizinhos
+                fila[fimFila++] = i;
+            }
+        }
+    }
+
+    free(visitados);
+    free(fila);
+    return false;
+}
+
+int conectividadeAresta(Rede* rede, int sensorOrigem){ //verifica o número mínimo de enlaces que precisam ser cortados para a rede se desconectar 
+    int conectividadeMin = INT_MAX;
+    int aux, destino;
+    int* antecessores = (int*) malloc(sizeof(int)*rede->tamanho);
+    int** arestasVisitadas;
+    
+    for(int i = 0; i<rede->tamanho; i++){
+        if(i == sensorOrigem || rede->grafo[i] == NULL){             //Pula caso o sensor i tenha sido deletado ou for o de origem
+            continue;
+        }
+
+        arestasVisitadas = matrizResidual(rede);                    //copia  a matriz de capacidades
+        int fluxoMaximo = 0;
+    
+        while(BFS(arestasVisitadas, sensorOrigem, i, rede->tamanho, antecessores)){ //enquanto a BFS achar caminho entre a origem e i
+            fluxoMaximo++;
+
+            destino = i;
+            while(destino != sensorOrigem){
+                aux = antecessores[destino];
+                arestasVisitadas[aux][destino] -= 1;                 //gasta capacidade da aresta
+                arestasVisitadas[destino][aux] += 1;                 //adiciona a capacidade no sentido reverso
+                destino = aux;
+            }
+        }
+
+        if(fluxoMaximo < conectividadeMin){                         //atualiza conectividade mínima
+            conectividadeMin = fluxoMaximo;
+        }
+    }
+    free(antecessores);
+    liberaMatrizes(arestasVisitadas, rede->tamanho);
+    return conectividadeMin;
+}
+
+int** matrizVertexSplitting(Rede* rede){         //dobra o número de nós na matriz para ser usada na conectividade de vértices
+
+    int totalNos = 2 * rede->tamanho;
+
+    int** matrizVertexSplitting = (int**) malloc(totalNos * sizeof(int*));
+
+    for (int i = 0; i < totalNos; i++) {
+        matrizVertexSplitting[i] = (int*) calloc(totalNos, sizeof(int));
+    }
+
+    for (int i = 0; i < rede->tamanho; i++) {
+        if(rede->grafo[i] == NULL){
+            continue;
+        }
+        //conecta i_in com i_out 
+        matrizVertexSplitting[i][i + rede->tamanho] = 1;
+
+        // conectar aos vizinhos
+        Sensor* aux = rede->grafo[i];
+        while (aux != NULL) {
+            int j = aux->sensor;
+            //conecta i_out com j_in
+            matrizVertexSplitting[i + rede->tamanho][j] = 1; 
+            aux = aux->proximo;
+        }
+
+    }
+    return matrizVertexSplitting;
+}
+
+void resetarMatrizVertex(int** residual, int** original, int vertices) {  //restaura matriz para as capacidades originais 
+    for (int i = 0; i < vertices; i++) {
+        for (int j = 0; j < vertices; j++) {
+            residual[i][j] = original[i][j];
+        }
+    }
+}
+
+int conectividadeVertices(Rede* rede) {  //verifica o menor número de sensores que se falharem dividem a rede 
+
+    int totalNos = 2 * rede->tamanho;
+    int conectividadeMin = rede->tamanho;
+
+    int** matrizOg = matrizVertexSplitting(rede);               //cria a matriz divindo o sensor em 2 (in e out)
+    int** matrizRes = (int**) malloc(totalNos * sizeof(int*));
+    for (int i = 0; i < totalNos; i++) {
+        matrizRes[i] = (int*) malloc(totalNos * sizeof(int));
+    }
+
+    int* antecessores = (int*) malloc(sizeof(int) * totalNos);
+
+    for (int origem = 0; origem < rede->tamanho; origem++) {  //testa todos os pares possíveis
+        if(rede->grafo[origem] == NULL){
+            continue;
+        }
+
+        for (int destino = 0; destino < rede->tamanho; destino++) {    
+            //Pula se for o mesmo nó, se forem vizinhos ou se o destino foi deletado
+            if (origem == destino || adjacente(rede, origem, destino) || rede->grafo[destino] == NULL){
+                continue;
+            }
+
+            resetarMatrizVertex(matrizRes, matrizOg, totalNos); //restaura matriz 
+            int fluxoMaximo = 0;
+
+            while (BFS(matrizRes, origem + rede->tamanho, destino, totalNos, antecessores)) { 
+
+                fluxoMaximo++;
+
+                int atual = destino;
+                while (atual != (origem + rede->tamanho)) {
+                    int antecessor = antecessores[atual];
+                    matrizRes[antecessor][atual] -= 1;
+                    matrizRes[atual][antecessor] += 1;
+                    atual = antecessor;
+                }
+            }
+
+            if (fluxoMaximo < conectividadeMin) {
+                conectividadeMin = fluxoMaximo;
+            }
+        }
+    }
+
+    liberaMatrizes(matrizOg, totalNos);
+    liberaMatrizes(matrizRes, totalNos);
+
+    if(conectividadeMin == rede->tamanho){
+        return 0;
+    }
+    else{
+        return conectividadeMin;
+    }
+}
+
+void conectividade(Rede* rede){          //printa as conectividades
+    int vertice = conectividadeVertices(rede);
+    int aresta = conectividadeAresta(rede, rede->tamanho-1);
+    printf("Conectividade por vertice: %d\n", vertice);
+    printf("Conectividade por aresta: %d\n", aresta);
+    printf("Sao necessarios que %d sensores ou %d enlaces falhem para desconectar a rede.\n", vertice, aresta);
+}
+
+void liberaLista(Sensor* atual){         //libera lista do sensor
+    if(atual->proximo == NULL){
+        free(atual);
+        return;
+    }
+    liberaLista(atual->proximo);
+    free(atual);
+    return;
+}
+
+void apagaSensor(Rede* rede, int sensor){ //remove sensor e verifica se desconecta a rede
+    printf("Removendo sensor %d\n", sensor);
+    rede->vertices--;
+
+    int conexo = conectividadeAresta(rede, sensor);  //verifica conectividade da rede antes da remoção
+
+    liberaLista(rede->grafo[sensor]);  //apaga lista do sensor
+    rede->grafo[sensor] = NULL;
+
+    for(int i = 0; i<rede->tamanho; i++){ //apaga o sensor em outras listas
+        Sensor* anterior = NULL;
+        Sensor* atual = rede->grafo[i];
+        while(atual){
+            if(atual->sensor == sensor){
+                if(anterior == NULL){
+                    rede->grafo[i] = atual->proximo;
+                }
+                else{
+                    anterior->proximo = atual->proximo;
+                }
+
+                free(atual);
+                break;
+            }
+            anterior = atual;
+            atual = atual->proximo;
+        }
+    }
+
+    printf("Novo grau medio: %f\n", grauMedio(rede));
+
+    if(conexo == 0){
+        printf("O grafo ja estava desconexo antes da remocao.\n");
+        return;
+    }
+
+    conexo = conectividadeAresta(rede, rede->tamanho-1);
+
+    if(conexo == 0){
+        printf("Apos a remocao a rede se desconecta.\n");
+        return;
+    }
+
+    printf("Apos a remocao a rede permanece conectada.\n");
+    return;
+}
+
+void encerra(Rede* rede){      
+    for(int i = 0; i<rede->tamanho; i++){
+        liberaLista(rede->grafo[i]);
+    }
+    free(rede);
+
+    return;
+}
+
+int main(){
+
+    int vertices, arestas;
+
+    scanf("%d", &vertices);
+    scanf("%d", &arestas);
+
+    Rede* rede = criaRede(vertices);
+
+    carregaRede(rede, arestas);
+
+    imprimeLista(rede);
+
+    dijkstra(rede, 0,7);
+
+    printf("Grau medio: %.2f\n", grauMedio(rede));
+
+    apagaSensor(rede, 5);
+    
+    coeficienteAgrupamento(rede, 1);
+    
+    conectividade(rede);
+
+    return 0;
+}
