@@ -1,0 +1,332 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+//estruturas gerais
+
+typedef struct bairro{
+    int peso;
+    int bairro;
+    struct bairro *proximo;
+}Bairro;
+
+typedef struct Cidade{
+    int qtd_bairros;
+    Bairro **cidade; //cidade vetor de ponteiros
+}Cidade;
+
+Bairro* inserirBairro(int bairro, int peso){
+    Bairro *novo = malloc(sizeof(Bairro));
+    novo->peso = peso;
+    novo->proximo = NULL;
+    novo->bairro = bairro;
+
+    return novo;
+}
+
+Cidade* criarCidade(int bairros){
+    Cidade *cidade = malloc(sizeof(Cidade));
+    cidade->cidade = (Bairro **)malloc(sizeof(Bairro*) * bairros);
+    cidade->qtd_bairros = bairros;
+
+    for(int i = 0; i<bairros; i++){
+        cidade->cidade[i] = NULL;
+    }
+    return cidade;
+}
+
+void conectaBairros(Cidade* c, int b1, int b2, int peso, int orientado){
+    //Conecta b1 na lista de adjacência de b2
+    Bairro* bairro1 = inserirBairro(b1, peso);
+    bairro1->proximo = c->cidade[b2]; // Aponta para o que já estava lá
+    c->cidade[b2] = bairro1;          // O novo nó vira o início da lista
+
+    //Conecta b2 na lista de adjacência de b1
+    if(orientado == 0){ 
+        Bairro* bairro2 = inserirBairro(b2, peso);
+        bairro2->proximo = c->cidade[b1]; //Aponta para a lista de b1
+        c->cidade[b1] = bairro2;          //O novo nó vira o início da lista de b1
+    }
+
+    return;
+}
+
+void carregaCidade(Cidade* c, int ruas, int orientado){            
+    int bairro1, bairro2, peso;
+
+    for(int i = 0; i<ruas; i++){
+        scanf("%d", &bairro1);
+        scanf("%d", &bairro2);
+        scanf("%d", &peso);
+        conectaBairros(c, bairro1-1, bairro2-1, peso, orientado);
+    }
+    printf("Topologia carregada com sucesso.\n");
+    printf("Bairros: %d\n", c->qtd_bairros);
+    printf("Ruas: %d\n", ruas);
+}
+
+void imprimeCidade(Cidade* c){                       
+    for(int i = 0; i < c->qtd_bairros; i++){
+        Bairro* aux = c->cidade[i];
+        printf("Bairro %d: ", i+1);
+        while(aux!=NULL){
+            printf("-> %d (Peso: %d) ", aux->bairro + 1, aux->peso);
+            aux = aux->proximo;
+        }
+        printf("\n");
+    }
+}
+
+//item 1 - análise de conectividade e alcance
+
+void dfs(Cidade* c, int bairro_atual, int visitados[]) {
+    // Marca o bairro atual como visitado
+    visitados[bairro_atual] = 1;
+
+    // Percorre todos os vizinhos dele na lista de adjacência
+    Bairro* vizinho = c->cidade[bairro_atual];
+    while (vizinho != NULL) {
+        //Se o vizinho ainda não foi visitado, entra nele recursivamente
+        if (visitados[vizinho->bairro] == 0) {
+            dfs(c, vizinho->bairro, visitados);
+        }
+        vizinho = vizinho->proximo;
+    }
+}
+
+int analisarConectividade(Cidade* c, int bairro_inicial) {
+
+    int qtd = c->qtd_bairros;
+    int visitados[qtd];
+    
+    //Inicializa o vetor de visitados com 0 
+    for (int i = 0; i < qtd; i++) {
+        visitados[i] = 0;
+    }
+
+    //começa a busca a partir do bairro inicial
+    dfs(c, bairro_inicial, visitados);
+
+    //1.1 identificar todos os bairros alcançáveis
+    printf("Bairros alcancaveis a partir de %d: ", bairro_inicial + 1);
+    for (int i = 0; i < qtd; i++) {
+        if (visitados[i] == 1 && i != bairro_inicial) {
+            printf("%d ", i + 1);
+        }
+    }
+
+    printf("\n");
+
+    //1.2 e 1.3 verificar se é totalmente conectada e detectar isolados
+
+    int totalmente_conectada = 1;
+    int num_conjunto = 1;
+
+    //conjunto da origem
+    printf("Conjunto %d: ", num_conjunto++);
+    for(int i = 0; i < qtd; i++){
+        if(visitados[i] == 1){
+          printf("%d ", i + 1);
+        }
+    }
+
+    printf("\n");
+
+    //printar o conjuntto dos bairros isolados
+    for(int i = 0; i < qtd; i++){
+
+        if(visitados[i] == 0){ //bairro não visitado
+            totalmente_conectada = 0;
+
+            int tempdfs[qtd]; //vetor temporário 
+
+            for(int j = 0; j < qtd; j++){
+                tempdfs[j] = 0;
+            }
+            
+            dfs(c, i, tempdfs); //roda dfs no bairro isolado
+
+            //marca os bairros isolados como visitados no vetor principal
+            for(int k = 0; k < qtd; k++){
+                if(tempdfs[k] == 1) {
+                    visitados[k] = 1;
+                }
+            }
+
+            printf("Conjunto %d: ", num_conjunto++);
+            for(int j = 0; j < qtd; j++){
+                if(tempdfs[j] == 1){
+                    printf("%d ", j + 1);
+                }
+            }
+            printf("\n");
+        }
+    }
+
+    if (totalmente_conectada) {
+        printf("A cidade e totalmente conectada!\n");
+    } else {
+        printf("A cidade nao e totalmente conectada.\n");
+    }
+
+    return totalmente_conectada;
+}
+
+//item 2 - planejamento de rotas inteligentes
+
+int encontrarMenorDistancia(int distancia[], int visitados[], int qtd_bairros) {
+    int min = INT_MAX, i = -1;
+
+    //fila de prioridade com menor peso
+    for (int j = 0; j < qtd_bairros; j++) {
+        if (visitados[j] == 0 && distancia[j] <= min) {
+            min = distancia[j];
+            i = j;
+        }
+    }
+    return i;
+}
+
+void caminhoRecursivo(int antecessor[], int bairro) {
+    // Se chegou na origem (que não tem antecessor)
+    if (antecessor[bairro] == -1) {
+        printf("%d", bairro + 1);
+        return;
+    }
+    caminhoRecursivo(antecessor, antecessor[bairro]);
+    printf(" -> %d", bairro + 1);
+}
+
+void printCaminho(int origem, int destino, int distancia[], int antecessor[]) {
+
+    if (distancia[destino] == INT_MAX) {
+        printf("Nao ha caminho entre o bairro %d e %d.\n", origem + 1, destino + 1);
+    } else {
+        printf("Custo total da rota: %d\n", distancia[destino]);
+        printf("Caminho a ser percorrido: ");
+        caminhoRecursivo(antecessor, destino);
+        printf("\n");
+    }
+}
+
+void dijkstra(Cidade* c, int origem, int destino) {
+
+    int qtd = c->qtd_bairros;
+    int distancia[qtd];
+    int visitados[qtd];
+    int antecessor[qtd];
+
+    //inicialização
+    for (int i = 0; i < qtd; i++) {
+        distancia[i] = INT_MAX;
+        visitados[i] = 0;
+        antecessor[i] = -1; 
+    }
+
+    distancia[origem] = 0;
+
+    for (int i = 0; i < qtd - 1; i++) {
+        int u = encontrarMenorDistancia(distancia, visitados, qtd);
+        if (u == -1 || u == destino) break; // Chegou no destino ou o resto é inacessível
+
+        //marca como finalizado
+        visitados[u] = 1;
+
+        // Percorre os vizinhos de u 
+        Bairro* atual = c->cidade[u];
+
+        while (atual != NULL) {
+            int v = atual->bairro;
+            int peso = atual->peso;
+
+            // Se v não foi visitado e o caminho por u for menor do que o atual de v
+            if (!visitados[v] && distancia[u] + peso < distancia[v]) {
+                distancia[v] = distancia[u] + peso;
+                antecessor[v] = u; // Guarda de onde veio para reconstruir o caminho depois
+            }
+            atual = atual->proximo;
+        }
+    }
+
+    printCaminho(origem, destino, distancia, antecessor);
+}
+
+//item 3 - expansão economica da infraestrutura
+
+void prim(Cidade* c) {
+
+    int qtd = c->qtd_bairros;
+    int chave[qtd];      
+    int no[qtd];     
+    int pai[qtd];        
+
+    for (int i = 0; i < qtd; i++) {
+        chave[i] = INT_MAX;
+        no[i] = 0;
+        pai[i] = -1;
+    }
+
+    // Começa pelo primeiro bairro
+    chave[0] = 0;
+
+    for (int i = 0; i < qtd - 1; i++) {
+
+        int u = encontrarMenorDistancia(chave, no, qtd);
+        if (u == -1) break;
+
+        no[u] = 1; // Insere o bairro na árvore
+
+        Bairro* atual = c->cidade[u];
+        while (atual != NULL) {
+            int v = atual->bairro;
+            int peso = atual->peso;
+
+            if (no[v] == 0 && peso < chave[v]) {
+                chave[v] = peso;
+                pai[v] = u;
+            }
+            atual = atual->proximo;
+        }
+    }
+
+    int custo_total = 0;
+    printf("\nSolucao da Expansao\n");
+    for (int i = 1; i < qtd; i++) {
+        if (pai[i] != -1) {
+            printf("Bairro %d <-> Bairro %d (Custo: %d)\n", pai[i] + 1, i + 1, chave[i]);
+            custo_total += chave[i];
+        }
+    }
+    printf("Custo total da ciclovia: %d\n", custo_total);
+}
+
+int main(){
+
+    int bairros, ruas, orientado, ponderado;
+
+    scanf("%d", &bairros);
+    scanf("%d", &ruas);
+    scanf("%d", &orientado);
+    scanf("%d", &ponderado);
+   
+
+    Cidade* c = criarCidade(bairros);
+
+    carregaCidade(c, ruas, orientado);
+
+    imprimeCidade(c);
+
+    int conectada = analisarConectividade(c, 0);
+
+    dijkstra(c, 0, 4);
+
+    if(conectada == 1){
+        prim(c);
+    }
+    else{
+        printf("a cidade nao eh conectada");
+    }
+
+    return 0;
+
+}
