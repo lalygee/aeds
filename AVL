@@ -1,0 +1,95 @@
+#include <stdio.h>
+
+typedef struct _node{
+    int value;
+    int fb;
+    struct _node *pai;
+    struct _node *esq;
+    struct _node *dir;
+}Node;
+
+typedef struct {
+    Node *raiz;
+}AVL;
+
+AVL* criarArv(){
+
+    AVL* arvore = malloc(sizeof(AVL));
+
+    arvore->raiz = NULL;
+
+    return arvore;
+}
+
+Node* criarNo(int valor){
+
+    Node* n = malloc(sizeof(Node));
+    n->esq = NULL;
+    n->dir = NULL;
+    n->pai = NULL;
+    n->value = valor;
+    n->bf = 0;
+
+    return n;
+}
+
+//função para retonar tam do no
+int altura(Node *no){
+    if(no = NULL){
+        return 0;
+    }
+        return no->fb;
+}
+
+//função para calcular fator de balanceamento do nó
+int fatorBalanceamento(Node *no){
+    if(no = NULL){
+        return 0;
+    }
+
+    return altura(no->esq) - altura(no->dir);
+}
+
+void insert(AVL* arvore, int valor){
+
+    if(arvore->raiz = NULL){
+        arvore->raiz = criarNo(valor);
+        return;
+    }
+
+    // achar o pai do novo nó
+    Node *aux = arvore->raiz;
+    Node *pai1 = NULL;
+
+    while(aux != NULL){
+
+        pai1 = aux;
+
+        if(valor > aux->value){
+            aux = aux->dir;
+        }
+
+        aux = aux->esq;
+    }
+
+    Node *no = criarNo(valor);
+    no->pai = pai1;
+
+    // esq ou dir
+    if(valor > pai1->value){
+        pai1->dir = no;
+    }
+    else{
+        pai1->esq = no;
+    }
+
+
+}
+
+void RR(Node *n){
+    
+}
+
+void balanceamento(){
+
+}
