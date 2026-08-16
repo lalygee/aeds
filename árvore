@@ -1,0 +1,152 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct _node{
+    int valor;
+    struct _node *esq;
+    struct _node *dir;
+    struct _node *pai;
+}Node;
+
+typedef struct {
+    Node *raiz;
+}Arvore;
+
+void percursoOrdem(Node *n){
+    if(n == NULL){
+        return;
+    }
+    percursoOrdem(n->esq);
+    printf("%d ", n->valor);
+    percursoOrdem(n->dir);
+}
+
+void inserir (Arvore *arv, int valor){
+    
+    Node *aux = arv->raiz;
+    Node *pai = NULL;
+
+    while(aux!=NULL){
+        pai = aux;
+        if(valor > aux->valor){
+            aux = aux->dir;
+        }
+        else{
+            aux = aux->esq;
+        }
+    }
+
+    Node *no = malloc(sizeof(Node));
+    no->valor = valor;
+    no->pai = pai;
+    no->dir = NULL;
+    no->esq = NULL;
+
+    // ver se o no vai para a esq ou dir do pai
+    if(pai!=NULL){
+        if(valor > pai->valor){
+            pai->dir = no;
+            return;
+        }
+            pai->esq = no;
+        }
+
+        //arv vazia
+        else{
+            arv->raiz = no;
+        }
+
+        return;
+    }
+       
+Node* busca(Node *n, int valor){
+    
+    if(n == NULL || n->valor == valor){
+        return n;
+    }
+
+    if(valor > n->valor){
+       return busca(n->dir, valor);
+    }
+    return busca(n->esq, valor);
+}
+
+Node* remover(Node *no, int chave){
+
+    //arv vazia
+    if(no == NULL){
+        return NULL;
+    }
+
+    //procurar nó
+    if(no->valor == chave){
+
+        //no sem filhos
+        if(no->esq == NULL && no->dir == NULL){
+            free(no);
+            return NULL;
+        }
+
+        //no com 1 filho
+        if(no->esq == NULL || no->dir == NULL){
+            Node *aux;
+            if(no->esq != NULL){
+                aux = no->esq;
+            }
+            else{
+                aux = no->dir;
+            }
+            free(no);
+            return aux;
+        }
+
+        //no com 2 filhos
+        if(no->esq != NULL && no->dir != NULL){
+
+            //sub arvore esquerda e acha o mais a direita
+            Node *aux = no->esq;
+            while(aux->dir != NULL){
+                aux = aux->dir;
+            } 
+
+            no->valor = aux->valor;
+            aux->valor = chave; // n precisa fazer copia
+
+            no->esq = remover(no->esq, chave);
+            return no;
+        }
+    }
+
+    if(chave < no->valor){
+        no->esq = remover(no->esq, chave);
+    }
+    else{
+        no->dir = remover(no->dir, chave);
+    }
+
+    return no;
+}
+
+int main(){
+
+    Arvore *arv = malloc(sizeof(Arvore));
+    arv->raiz = NULL;
+
+    inserir(arv, 0);
+    inserir(arv, 5);
+    inserir(arv, -5);
+    inserir(arv, -10);
+    inserir(arv, 10);
+    inserir(arv, -3);
+    inserir(arv, 3);
+    inserir(arv, -2);
+    inserir(arv, 2);
+
+    remover(arv->raiz, 5);
+
+
+    percursoOrdem(arv->raiz);
+
+    return 0;
+}
